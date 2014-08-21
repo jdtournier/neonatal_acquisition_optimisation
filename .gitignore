@@ -1,0 +1,8 @@
+*.mif
+*.nii
+*.dcm
+*.bib
+*.swp
+*.log
+*.aux
+Thumbs*
