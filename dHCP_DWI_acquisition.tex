@@ -8,6 +8,7 @@
 %\usepackage[space]{grffile}
 %\usepackage{adjustbox}
 \usepackage{array}
+\usepackage{amsmath}
 \usepackage{multirow}
 \usepackage{booktabs} % For \toprule, \midrule and \bottomrule
 \usepackage{siunitx} % Formats the units and values
@@ -22,6 +23,42 @@
 \newcommand{\nDW}{n_{\textrm{DW}}}
 \newcommand{\nvox}{n_{\textrm{vox}}}
 \newcommand{\mms}{\textrm{mm}^2/\textrm{s}}
+\newcommand{\cnr}{\textrm{CNR}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\Lagr}{\mathcal{L}}
+
+
+\newcommand{\imagingassumptions}{This is calculated assuming a total of $\nDW = 400$ DW directions, and SNR$_{b=0} = 15$.}
+
+\newcommand{\captionbval}[2]{
+\caption{Optimal \textbf{$b$-values} for a #1-shell acquisition (excluding $b=0$), targeting #2 
+coefficients, neglecting $T_2$ effects, per subject, and for all subjects combined.}
+}
+\newcommand{\captionnDW}[2]{
+\caption{Optimal \textbf{number of directions} per shell for a #1-shell acquisition, 
+targeting #2 coefficients, neglecting $T_2$ effects, per subject, and for all subjects combined.
+\imagingassumptions }
+}
+\newcommand{\captionCNR}[2]{
+\caption{Optimal \textbf{contrast to noise ratio} per coefficient for a #1-shell acquisition,
+targetting #2 coefficients, neglecting $T_2$ effects, per subject, and for all subjects combined.
+\imagingassumptions }
+}
+
+\newcommand{\captionbvalTE}[3]{
+\caption{Optimal \textbf{$b$-values} for a #1-shell acquisition (excluding $b=0$), targeting #2 
+coefficients, assuming $T_2 = #3$ ms, per subject, and for all subjects combined.}
+}
+\newcommand{\captionnDWTE}[3]{
+\caption{Optimal \textbf{number of directions} per shell for a #1-shell acquisition, 
+targeting #2 coefficients, assuming $T_2 = #3$ ms, per subject, and for all subjects combined.
+\imagingassumptions }
+}
+\newcommand{\captionCNRTE}[3]{
+\caption{Optimal \textbf{contrast to noise ratio} per coefficient for a #1-shell acquisition,
+targetting #2 coefficients, assuming $T_2 = #3$ ms, per subject, and for all subjects combined.
+\imagingassumptions }
+}
 
 \author{J-D.~Tournier}
 \title{optimisation of dHCP diffusion acquisition protocol}
@@ -34,8 +71,8 @@
 Basic idea: the DW signal within each voxel is a linear combination of tissue-specific
 signatures. These tissue signatures may have orientational features (notably
 for white matter), but what is critical for the determination of the `optimal'
-multi-shell scheme is that the DW signal averaged over all orientations (i.e.
-the 'DC' term) have distinct features as a function of $b$-value. 
+multi-shell scheme is that their DW signal averaged over all orientations per
+shell (i.e.  the `DC' term) have distinct features as a function of $b$-value. 
 
 The linear combination approach is generally assumed valid in the limit of
 negligible exchange between tissue types - this is used in many complex models
@@ -43,13 +80,13 @@ of DW signal in white matter. It's completely valid when the different
 components correspond to physically distant regions of tissue, for example when
 two tracts pass close to each other (leading to partial volume averaging),
 since the water molecules will not be able to diffuse between compartments
-during the applied diffusion time. It is also probably fine even when different
-compartment co-exist given that the pre-exchange lifetime of water molecules in
-cells is typically estimated at between 0.5 to 1s, which is long compared to
-the $\sim$50ms diffusion times used. 
+during the applied diffusion time. It is also probably justified even when different
+compartments co-exist given that the pre-exchange lifetime of water molecules
+in cells is typically estimated at between 0.5 to 1s, which is long compared to
+the $\sim$50ms diffusion times typically used. 
 
 The focus on the isotropic part of the signal, ignoring orientational features,
-is justified as follows. First, in the absence of other information, any
+can also be justified as follows. First, in the absence of other information, any
 orientation feature in the `intrinsic' DW signal cannot be disentangled from
 the orientation distribution function (ODF) for that tissue in that voxel - in
 other words, orientation features may change simply due to a rotation of the
@@ -58,9 +95,9 @@ tissue, or the presence of multiple orientations of it within the same voxel
 rotationally invariant, and directly proportional to the amount of
 corresponding tissue. Second, while focusing on the isotropic part may discard
 usable information (in terms of teasing apart the various compartments), this
-implies that the contrast-to-noise measures estimated by this procedure are 
-conservative -- it may be possible to improve on the values given, but they
-nonetheless constitute a sane lower bound. 
+implies that the contrast-to-noise measures estimated by the procedure
+described below are conservative -- it may be possible to improve on the values
+given, but they nonetheless constitute a sane lower bound. 
 
 \subsection{General approach}
 
@@ -72,12 +109,12 @@ Based on the above, the idea is to factorise the DW signal into 3 parts:
 \end{itemize}
 
 Given such a factorisation, and a set of $b$-values to use, it is possible to
-identify the optimal number of directions $\nDW$ per $b$-value (as a fraction of the
+identify the optimal number of directions $\left\{ d_i \right\}$ per $b$-value (as a fraction of the
 total number acquired), such that the contrast-to-noise ratio (CNR) of the
 estimated weights is maximised. 
 
 Identifying the optimal set of $b$-values then becomes a matter of optimising
-for maximum CNR (given optimised $\nDW$ as above).
+for maximum CNR (given optimised $\left\{ d_i \right\}$ as above).
 
 \subsection{Signal factorisation}
 
@@ -91,7 +128,8 @@ Given a $\nvox \times n_b$ matrix of data values $D$, we use the
 slim SVD to provide matrices $W$, $E$ and $H$ such that $D = W E H^T$, where:
 \begin{itemize}
 \item $W$ is the $\nvox \times n_c$ matrix of weights for each coefficient, per voxel;
-\item $E$ is the $n_c \times n_c$ diagonal matrix of effect sizes for each coefficient;
+\item $E$ is the $n_c \times n_c$ diagonal matrix of effect sizes for each
+coefficient -- also referred to as $\epsilon_i$ throughout this document;
 \item $H$ is the $n_b \times n_c$ orthogonal matrix of response function,
 giving the expected signal for a unit response at each $b$-value.
 \end{itemize}
@@ -125,37 +163,38 @@ produce the $\nvox \times n_{b'}$ matrix $D'$, with $n_{b'} = 1 + b_{\textrm{max
 guaranteed monotonicity when applied to monotonic data (as is the case here).
 \item the slim SVD is performed on the interpolated matrix $D'$, but only the
 sub-matrices corresponding to the first $n_b$ singular values are retained. The
-matrix $H$ is therefore now $n_c \times n_{b'}$, with the size of the other
+matrix $H_{\textrm{upsampled}}$ is therefore now $n_c \times n_{b'}$, with the size of the other
 matrices remaining unaffected.
-\item responses for a given set of arbitrary $b$-values can then be derived
-using a further PCHIP interpolation step on the response matrix $H$.
+\item responses $H$ for a given set of arbitrary $b$-values can then be derived
+using a further PCHIP interpolation step on the response matrix $H_{\textrm{upsampled}}$.
 \end{enumerate} 
 
-\subsection{Contrast to noise ratio estimation}
 
-\subsubsection{Noise Propagation}
+\subsection{Noise Propagation}
 Given a problem $c = M s$, the variance-covariance matrix $\Sigma_c$ on the coefficients $c$ is given by:
 \begin{equation}
 \label{noise_prop}
 \Sigma_c = M \Sigma_s M^T 
 \end{equation}
-where $\Sigma_s$ is the variance-covariance matrix on the measured data $s$.  
+where $\Sigma_s$ is the variance-covariance matrix on the measured data $s$.
+The diagonal elements of $\Sigma_c$ correspond to the variances 
+$\left\{ \sigma_i^2 \right\}$ of the estimated coefficients. The CNR of the
+individual coefficients can then be derived given an estimate of the
+corresponding effect size $\epsilon_i$:
+\begin{eqnarray}
+\cnr_i & = & \frac{\epsilon_i}{\sigma_i} \\
+& = & \frac{E(i,i)}{\sqrt{\Sigma_c(i,i)}}
+\end{eqnarray}
+
 Assuming the data are independent and identically distributed (i.i.d.),
 $\Sigma_s = \sigma_s^2 I$, where $I$ is the identity matrix, and $\sigma_s$ is
 the standard deviation of the imaging noise. In our problem, the matrix $M$
-corresponds to $(HE)^\dagger$, the Moore-Penrose Pseudo-inverse of $EH$, given by:
-\begin{eqnarray}
-(HE)^\dagger & = & \left( (HE)^T(HE) \right)^{-1}(HE)^T \\
-& = & \left(E^T H^T H E \right)^{-1} E^T H^T\\
-& = & (E H^T H E)^{-1} E H^T \qquad \textrm{if $E$ is diagonal} \\
-& = & E^{-1} (H^TH)^{-1} E^{-1} E H^T \qquad \textrm{if $E$ is square invertible} \\
-& = & E^{-1} (H^T H)^{-1} H^T \\
-& = & E^{-1} H^\dagger
-\end{eqnarray}
+corresponds to $H^\dagger$, the Moore-Penrose Pseudo-inverse of $H$, the matrix
+of responses evaluated over the desired set of $n_b$ $b$-values.
 
-When multiple measurements of the same data point are available, the results is
-essentially to reduce the variance in the measurement by the corresponding
-factor -- i.e. $\Sigma_s(i,i) = \sigma_s^2 / n_i$, where $n_i$ is the number of
+When multiple measurements of the same data point are available, the result is
+essentially to reduce the variance of the measurement by the corresponding
+factor -- i.e. $\Sigma_s(i,i) = \sigma_s^2 / d_i$, where $d_i$ is the number of
 measurements performed for data point $i$. In the context of the present
 analysis, repeated measurements at the same $b$-value will typically be taken
 along different DW directions, and so will not correspond. However, provided
@@ -171,20 +210,160 @@ For the present study, a spherical harmonic order $l = 6$ was shown to be
 sufficient to fully characterise the DW signal at high $b$-values, implying
 that a set of 28 directions was sufficient to ensure sufficiently dense
 sampling. This number is reduced to order $l=4$ (15 DW directions) for lower
-$b$-values, and eventually to $l=2$ (6 measurements) and $l=0$ (1 measurement)
-at $b=0$. Hence, the above argument holds provided the number of measurement at
-each $b$-value is greater than those numbers. 
-
-\subsubsection{Determining the optimum number of DW directions}
+$b$-values, and eventually through $l=2$ (6 measurements) to $l=0$ (1 
+measurement) at $b=0$. Hence, the above argument holds provided the number of 
+measurements at each $b$-value is greater than those numbers. 
 
 
-Eqn~\ref{noise_prop} can be re-written as:
+
+\subsection{Determining the optimum number of DW directions}
+
+Given an acquisition comprising $n_b$ shells (including $b=0$), $n_c = n_b$ 
+coefficients can be estimated. To determine the best number of DW directions to
+acquire per shell, a good cost function to minimise is the sum of their
+squared coefficients of variation:
 \begin{eqnarray}
-\Sigma_c(i,i) & = & \sum_j m(i,j) \Sigma_s(j,j) m(i,j) \\
-& = & \sum_j \frac{ m(i,j)^2 \sigma^2_s(j) }{ n_j }
+\label{efficiency}
+\Psi & = & \sum_i^{n_b} \left( \frac{\sigma_i}{\epsilon_i} \right)^2 \\
+& = & \sum_i^{n_b} \frac{\Sigma_c(i,i)}{\epsilon_i^2}
+\end{eqnarray}
+Note that this is effectively the sum-of-squares of the inverse CNR values for
+each coefficient. An estimate of the overall CNR for the acquisition can
+therefore be obtained as $1/\sqrt{\Psi}$. In practice, the CNR values for each
+coefficient decrease rapidly, and this overall CNR value will be dominated by
+the smallest of these CNR values. Hence, minimising $\Psi$ can also be viewed
+as optimising the CNR of noisiest coefficient, without seriously compromising the
+CNR of the other coefficients.
+
+To derive $\Sigma_c(i,i)$, we use eqn~\ref{noise_prop} and re-write it as:
+\begin{eqnarray}
+\Sigma_c(i,i) & = & \sum_j^{n_b} m(i,j) \Sigma_s(j,j) m(i,j) \\
+& = & \sigma_s^2 \sum_j \frac{ m(i,j)^2 }{ d_j }
+\end{eqnarray}
+leading to:
+\begin{eqnarray}
+\Psi & = & \sigma_s^2 \sum_i^{n_b} \left[ \frac{1}{\epsilon_i^2} \sum_j \frac{ m(i,j)^2 }{ d_j } \right] \\
 \end{eqnarray}
 
+To determine the optimal number of directions $\left\{ d_i \right\}$ given a
+response matrix $H$ measured over $n_b$ $b$-values $\left\{ b_i \right\}$, we
+need to minimise $\Psi$ with respect to $\left\{ d_i \right\}$, with the total
+number of DW directions remaining fixed at $\nDW$:
+\begin{equation}
+\left\{ d_i \right\}_{\textrm{opt}} = \underset{ \left\{ d_i \right\} }{\argmin} \quad \Psi 
+\qquad \textrm{such that} \quad \sum_i^{n_b} d_i = \nDW
+\end{equation}
 
+Note that without loss of generality, we can set $\nDW = 1$, since $\Psi$ is
+directly proportional to $1/\nDW$. The number of directions derived
+assuming $\nDW=1$ can then be scaled up to the actual number to be acquired in
+practice, with no effect on the relative numbers per shell. 
+
+To identify the optimal $\left\{ d_i \right\}$, we use Lagrangian multipliers to add the constraint into the formulation:
+\begin{eqnarray}
+\Lagr (\left\{ d_i \right\}, \lambda) & = & \Psi + \lambda \sum_i^{n_b} d_i \\
+& = & \sigma_s^2 \sum_i^{n_b} \left[ \frac{1}{\epsilon_i^2} \sum_j \frac{ m(i,j)^2 }{ d_j } \right] + \lambda \sum_i^{n_b} d_i 
+\end{eqnarray}
+
+Differentiating with respect to $d_k$:
+\begin{eqnarray}
+\frac {\partial \Lagr (\left\{ d_i \right\}, \lambda)}{\partial d_k} & = & - \sigma_s^2 \sum_i^{n_b} \frac{1}{\epsilon_i^2} \frac{ m(i,k)^2 }{ d_k^2 } + \lambda  \\
+& = & - \frac{\sigma_s^2}{d_k^2} \sum_i^{n_b} \frac{m(i,k)^2}{\epsilon_i^2} + \lambda
+\end{eqnarray}
+
+Setting to zero yields:
+\begin{eqnarray}
+d_k^2 & = & \frac{\sigma_s^2}{\lambda} \sum_i^{n_b} \frac{m(i,k)^2}{\epsilon_i^2} \\
+\textrm{and hence} \qquad d_k & \propto & \sqrt {\sum_i^{n_b} \frac{m(i,k)^2}{\epsilon_i^2} }
+\end{eqnarray}
+
+It is then a trivial matter to obtain the optimal set of directions using the
+above equation, by scaling their sum to the required $\nDW$.
+
+
+\subsection{Determining the optimal $b$-values}
+
+Now that we have:
+\begin{itemize}
+\item a way of estimating the intrinsic responses in the data;
+\item a method for predicting their corresponding DW signal over any set of $b$-values;
+\item a means of identifying the best number of directions to use at each of these $b$-values;
+\item and a function by which to assess the relative efficiencies of these schemes ($\Psi$, eqn~\ref{efficiency}),
+\end{itemize}
+we can determine the best set of $b$-values to use to ensure the most sensitive
+detection of these responses. For a given number $n_b$ of $b$-values, the
+procedure involves the minimisation of the cost function $\Psi$ with respect to
+the $b$-values $\left\{ b_i \right\}_{i\neq 0}$ ($b=0$ is excluded from the
+search space since it will always be acquired). This is done using a simple
+Nelder-Mead simplex minimisation routine, as implemented in Matlab's
+\texttt{fminsearch} routine. 
+
+
+\subsection{Accounting for T2 decay}
+
+In practice, the use of larger $b$-values will lead to longer echo times, which will
+in turn reduce the CNR of the coefficients estimated. Since it is usual
+practice in dMRI to vary the $b$-value by altering the DW gradient amplitude,
+keeping all other parameters (including sequence timings) identical, this means
+that the maximum $b$-value used will influence the CNR of all the estimated
+coefficients. This means that the set of optimal $b$-values will be one with a
+lower $b_{\textrm{max}}$ than would be expected if $T_2$ effects were
+neglected. For a simple pulsed-gradient spin-echo sequence, it is relatively
+trivial to derive the minimum echo time (TE) that can be achieved for a given
+$b_{\textrm{max}}$, assuming values for (see figure~\ref{PGSE}):
+\begin{itemize}
+\item $G_{\textrm{max}}$, the maximum gradient amplitude;
+\item $t_{\textrm{90}}$, the time between excitation and the onset of the first DW
+pulse;
+\item $t_{\textrm{180}}$, the time between the 180$^\circ$ refocusing pulse and
+the onset of the second DW pulse;
+\item and $t_{\textrm{RO}}$, the time between the end
+of the last DW gradient pulse and the spin-echo.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=18cm]{PGSE.pdf} 
+\caption{The basic pulsed-gradient spin-echo sequence, with the relevant timing parameters labelled.}
+\label{PGSE}
+\end{figure}
+
+Assuming that the minimum TE is always achieved by ensuring that the second DW 
+pulse is applied immediately after the 180$^\circ$ refocusing pulse, and that 
+the read-out start immediately after that, the echo time is given by:
+\begin{equation}
+\label{TE_eqn}
+\textrm{TE} = 2 \times ( t_{180} + \delta + t_{\textrm{RO}} )
+\end{equation}
+The $b$-value is given by:
+\begin{equation}
+\label{b_eqn}
+b_{\textrm{max}} = \gamma^2 G^2 \delta^2 (\Delta - \delta/3)
+\end{equation}
+Assuming the minimum TE is always achieved by starting the first DW pulse 
+immediately after the excitation pulse, $\Delta$ is given by:
+\begin{equation}
+\Delta = \textrm{TE}/2 + t_{180} - t_{90}
+\end{equation}
+Substituting into equations~\ref{b_eqn} and \ref{TE_eqn} gives:
+\begin{equation}
+\delta^3 + \frac{3}{2} \delta^2 (t_{\textrm{RO}} + 2 t_{180} - t_{90}) - \frac{3 b_{\textrm{max}}}{2\gamma^2 G^2} = 0
+\end{equation}
+
+This is a cubic equation, the positive root of which provides the value of
+$\delta$. The TE can then be obtained using eqn~\ref{TE_eqn}, and the effect
+sizes used in the analysis can be scaled down by the factor
+$e^{-\frac{\textrm{TE}}{T_2}}$ to account for $T_2$ losses.
+
+
+\subsection{Data collection}
+
+3 data sets were acquired on neonates with the following parameters: $b = 0,
+500, 1000, 2000, 3000, 4000 \, \mms$, 50 DW directions and 1 $b=0$ volume per
+shell. Processing was restricted with a mask of the brain. Each dataset was
+processed separately to investigate inter-subject variation, and the whole
+analysis was also performed on a combined dataset obtained by concatenation of
+all 3 individual datasets.
 
 
 \section{Results}
@@ -211,7 +390,6 @@ Eqn~\ref{noise_prop} can be re-written as:
 \includegraphics[width=2cm]{pat1/response_4.pdf} &
 \includegraphics[width=2cm]{pat1/response_5.pdf} &
 \includegraphics[width=2cm]{pat1/response_6.pdf} \\
-
 
 \multirow{2}{*}{patient 2} & 
 \includegraphics[width=2cm]{pat2/weights0000.png} &
@@ -265,7 +443,7 @@ Eqn~\ref{noise_prop} can be re-written as:
 \pgfplotstabletypeset[
   fixed zerofill,
   precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={response 1} },
   columns/1/.style={ column name={response 2} },
@@ -275,142 +453,165 @@ Eqn~\ref{noise_prop} can be re-written as:
   columns/5/.style={ column name={response 6} },
   columns={newcol,0,1,2,3,4,5},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{effect_sizes.txt}
 \caption{SVD-derived effect sizes for each response, per subject.}
 \end{table}
 
-\newpage
-\section*{Neglecting T2 effects}
+
+
+
+
+
+\clearpage
+\subsection{Neglecting T2 effects}
 
 \begin{figure}[htbp]
-\begin{tabular}{m{1cm}*{3}{m{5cm}} }
-\hline
-& \multicolumn{1}{c}{patient 1} & \multicolumn{1}{c}{patient 2} & \multicolumn{1}{c}{patient 3} \\
-\hline
-$n_b = 3$ \newline $n_c = 3$ &
-\includegraphics[width=5cm]{pat1/results_3b_3coefs.pdf} &
-\includegraphics[width=5cm]{pat2/results_3b_3coefs.pdf} &
-\includegraphics[width=5cm]{pat3/results_3b_3coefs.pdf} \\
-$n_b = 4$ \newline $n_c = 4$  &
-\includegraphics[width=5cm]{pat1/results_4b_4coefs.pdf} &
-\includegraphics[width=5cm]{pat2/results_4b_4coefs.pdf} &
-\includegraphics[width=5cm]{pat3/results_4b_4coefs.pdf} \\
-$n_b = 5$ \newline $n_c = 5$  &
-\includegraphics[width=5cm]{pat1/results_5b_5coefs.pdf} &
-\includegraphics[width=5cm]{pat2/results_5b_5coefs.pdf} &
-\includegraphics[width=5cm]{pat3/results_5b_5coefs.pdf} \\
-\hline
+\centering
+\begin{tabular}{m{1.5cm}*{3}{m{4cm}}}
+\toprule
+& \multicolumn{1}{c}{$n_b = n_c = 3$} & \multicolumn{1}{c}{$n_b = n_c = 4$} & \multicolumn{1}{c}{$n_b = n_c = 5$} \\
+\midrule
+patient 1 & 
+\includegraphics[width=4cm]{pat1/results_3b_3coefs.pdf} &
+\includegraphics[width=4cm]{pat1/results_4b_4coefs.pdf} &
+\includegraphics[width=4cm]{pat1/results_5b_5coefs.pdf} \\
+
+patient 2 & 
+\includegraphics[width=4cm]{pat2/results_3b_3coefs.pdf} &
+\includegraphics[width=4cm]{pat2/results_4b_4coefs.pdf} &
+\includegraphics[width=4cm]{pat2/results_5b_5coefs.pdf} \\
+
+patient 3 & 
+\includegraphics[width=4cm]{pat3/results_3b_3coefs.pdf} &
+\includegraphics[width=4cm]{pat3/results_4b_4coefs.pdf} &
+\includegraphics[width=4cm]{pat3/results_5b_5coefs.pdf} \\
+
+\midrule
+
+combined & 
+\includegraphics[width=4cm]{pat_all/results_3b_3coefs.pdf} &
+\includegraphics[width=4cm]{pat_all/results_4b_4coefs.pdf} &
+\includegraphics[width=4cm]{pat_all/results_5b_5coefs.pdf} \\
+\bottomrule
 \end{tabular}
-\caption{SVD-derived responses for each of the 3 subjects, with optimal b-values denoted by the open circles. 
-In each case, the b-values were optimised to provide the greatest overall CNR for the first $n_c$ coefficients, 
-using $n_b$ distinct b-values. The responses in order of decreasing effect size are shown in blue, green, red, cyan, magenta, yellow. }
-\label{results_noTE}
+\caption{SVD-derived responses for each of the 3 subjects, and with all
+subjects combined, with optimal $b$-values denoted by the open circles. 
+In each case, the $b$-values were optimised to provide the greatest overall CNR
+for the first $n_c = n_b$ coefficients, using $n_b$ distinct $b$-values. The
+responses in order of decreasing effect size are shown in blue, green, red,
+cyan, magenta, yellow. }
 \end{figure}
 
+
+\clearpage
+\subsubsection{2 shells: $n_b = n_c = 3$}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
+  precision=0,
   create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
 patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/1/.style={ column name={shell 1 (s/mm$^2$)} },
-  columns/2/.style={ column name={shell 2 (s/mm$^2$)} },
-  columns={newcol,1,2},
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
   every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_3b_3coefs.txt}
-\caption{$b$-values for a 2 shell acquisition (excluding $b=0$), targeting 3 
-coefficients, neglecting T2 effects, per subject.}
+\captionbval{2}{3}
 \end{table}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
+  columns/0/.style={ column name={$b=0$} },
   columns/1/.style={ column name={shell 1} },
   columns/2/.style={ column name={shell 2} },
-  columns={newcol,1,2},
+  columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_3b_3coefs.txt}
-\caption{Number of directions per shell ($n_{DW}$) for a 2 shell acquisition, 
-targeting 3 coefficients, neglecting T2 effects, per subject.
-This is calculated assuming a total of 400 DW directions, and SNR in the $b=0$ 
-image = 15.}
+\captionnDW{2}{3}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
   columns/2/.style={ column name={coef 3} },
   columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_3b_3coefs.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 3 shell, 
-estimating 3 coefficients, neglecting T2 effects, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNR{2}{3}
 \end{table}
+
+
+
+
+
+
+\clearpage
+\subsubsection{3 shells: $n_b = n_c = 4$}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=0,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
+patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_4b_4coefs.txt}
-\caption{Optimal b-values for a set of 4 shell, estimating 4 coefficients, 
-neglecting T2 effects, per subject.}
+\captionbval{3}{4}
 \end{table}
-
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_4b_4coefs.txt}
-\caption{Optimal number of directions per shell for a set of 4 shell, 
-estimating 4 coefficients, neglecting T2 effects, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionnDW{3}{4}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
@@ -418,61 +619,64 @@ This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
   columns/3/.style={ column name={coef 4} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_4b_4coefs.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 4 shell, 
-estimating 4 coefficients, neglecting T2 effects, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNR{3}{4}
 \end{table}
+
+
+
+
+
+\clearpage
+\subsubsection{4 shells: $n_b = n_c = 5$}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=0,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
+patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
-  columns/4/.style={ column name={shell 5} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
+  columns/4/.style={ column name={shell 4} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_5b_5coefs.txt}
-\caption{Optimal b-values for a set of 5 shells, estimating 5 coefficients, 
-neglecting T2 effects, per subject.}
+\captionbval{4}{5}
 \end{table}
-
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
-  columns/4/.style={ column name={shell 5} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
+  columns/4/.style={ column name={shell 4} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_5b_5coefs.txt}
-\caption{Optimal number of directions per shell for a set of 5 shells, 
-estimating 5 coefficients, neglecting T2 effects, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionnDW{4}{5}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
@@ -481,144 +685,169 @@ This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
   columns/4/.style={ column name={coef 5} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_5b_5coefs.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 5 shell, 
-estimating 5 coefficients, neglecting T2 effects, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNR{4}{5}
 \end{table}
 
-\newpage
-\section*{Assuming T2=80ms}
+
+
+
+
+
+
+
+\clearpage
+\subsection{Assuming $T_2 = 80\,ms$}
 
 \begin{figure}[htbp]
-\begin{tabular}{m{1cm}*{3}{m{5cm}} }
-\hline
-& \multicolumn{1}{c}{patient 1} & \multicolumn{1}{c}{patient 2} & \multicolumn{1}{c}{patient 3} \\
-\hline
-$n_b = 3$ \newline $n_c = 3$ &
-\includegraphics[width=5cm]{pat1/results_3b_3coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat2/results_3b_3coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat3/results_3b_3coefs_T2_80ms.pdf} \\
-$n_b = 4$ \newline $n_c = 4$  &
-\includegraphics[width=5cm]{pat1/results_4b_4coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat2/results_4b_4coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat3/results_4b_4coefs_T2_80ms.pdf} \\
-$n_b = 5$ \newline $n_c = 5$  &
-\includegraphics[width=5cm]{pat1/results_5b_5coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat2/results_5b_5coefs_T2_80ms.pdf} &
-\includegraphics[width=5cm]{pat3/results_5b_5coefs_T2_80ms.pdf} \\
-\hline
+\centering
+\begin{tabular}{m{1.5cm}*{3}{m{4cm}}}
+\toprule
+& \multicolumn{1}{c}{$n_b = n_c = 3$} & \multicolumn{1}{c}{$n_b = n_c = 4$} & \multicolumn{1}{c}{$n_b = n_c = 5$} \\
+\midrule
+patient 1 & 
+\includegraphics[width=4cm]{pat1/results_3b_3coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat1/results_4b_4coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat1/results_5b_5coefs_T2_80ms.pdf} \\
+
+patient 2 & 
+\includegraphics[width=4cm]{pat2/results_3b_3coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat2/results_4b_4coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat2/results_5b_5coefs_T2_80ms.pdf} \\
+
+patient 3 & 
+\includegraphics[width=4cm]{pat3/results_3b_3coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat3/results_4b_4coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat3/results_5b_5coefs_T2_80ms.pdf} \\
+
+\midrule
+
+combined & 
+\includegraphics[width=4cm]{pat_all/results_3b_3coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat_all/results_4b_4coefs_T2_80ms.pdf} &
+\includegraphics[width=4cm]{pat_all/results_5b_5coefs_T2_80ms.pdf} \\
+\bottomrule
 \end{tabular}
-\caption{SVD-derived responses for each of the 3 subjects, with optimal b-values denoted by the open circles. 
-\textbf{In this case b-values were optimised taking into account the minimum TE achievable for the corresponding $b_\textrm{max}$, assuming a TE = 80ms}.
-In each case, the b-values were optimised to provide the greatest overall CNR for the first $n_c$ coefficients, 
-using $n_b$ distinct b-values. The responses in order of decreasing effect size are shown in blue, green, red, cyan, magenta, yellow. }
+\caption{SVD-derived responses for each of the 3 subjects, and with all
+subjects combined, with optimal $b$-values denoted by the open circles. 
+\textbf{In this case b-values were optimised taking into account the minimum TE
+achievable for the corresponding $b_\textrm{max}$, assuming a TE = 80ms}.
+In each case, the $b$-values were optimised to provide the greatest overall CNR
+for the first $n_c = n_b$ coefficients, using $n_b$ distinct $b$-values. The
+responses in order of decreasing effect size are shown in blue, green, red,
+cyan, magenta, yellow. }
 \end{figure}
 
 
+\clearpage
+\subsubsection{2 shells: $n_b = n_c = 3$}
+
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=0,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
+patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
   columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_3b_3coefs_T2_80ms.txt}
-\caption{Optimal b-values for a set of 3 shell, estimating 3 coefficients, 
-assuming T2=80ms, per subject.}
+\captionbvalTE{2}{3}{80}
 \end{table}
-
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
   columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_3b_3coefs_T2_80ms.txt}
-\caption{Optimal number of directions per shell for a set of 3 shell, 
-estimating 3 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionnDWTE{2}{3}{80}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
   columns/2/.style={ column name={coef 3} },
   columns={newcol,0,1,2},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_3b_3coefs_T2_80ms.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 3 shell, 
-estimating 3 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNRTE{2}{3}{80}
 \end{table}
+
+
+
+
+
+
+\clearpage
+\subsubsection{3 shells: $n_b = n_c = 4$}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=0,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
+patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_4b_4coefs_T2_80ms.txt}
-\caption{Optimal b-values for a set of 4 shell, estimating 4 coefficients, 
-assuming T2=80ms, per subject.}
+\captionbvalTE{3}{4}{80}
 \end{table}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_4b_4coefs_T2_80ms.txt}
-\caption{Optimal number of directions per shell for a set of 4 shell, 
-estimating 4 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionnDWTE{3}{4}{80}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
@@ -626,60 +855,64 @@ This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
   columns/3/.style={ column name={coef 4} },
   columns={newcol,0,1,2,3},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_4b_4coefs_T2_80ms.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 4 shell, 
-estimating 4 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNRTE{3}{4}{80}
 \end{table}
+
+
+
+
+
+\clearpage
+\subsubsection{4 shells: $n_b = n_c = 5$}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=0,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, 
+patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
-  columns/4/.style={ column name={shell 5} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
+  columns/4/.style={ column name={shell 4} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{bvals_opt_5b_5coefs_T2_80ms.txt}
-\caption{Optimal b-values for a set of 5 shell, estimating 5 coefficients, 
-assuming T2=80ms, per subject.}
+\captionbvalTE{4}{5}{80}
 \end{table}
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=1,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
-  columns/0/.style={ column name={shell 1} },
-  columns/1/.style={ column name={shell 2} },
-  columns/2/.style={ column name={shell 3} },
-  columns/3/.style={ column name={shell 4} },
-  columns/4/.style={ column name={shell 5} },
+  columns/0/.style={ column name={$b=0$} },
+  columns/1/.style={ column name={shell 1} },
+  columns/2/.style={ column name={shell 2} },
+  columns/3/.style={ column name={shell 3} },
+  columns/4/.style={ column name={shell 4} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{nDW_opt_5b_5coefs_T2_80ms.txt}
-\caption{Optimal number of directions per shell for a set of 5 shells, 
-estimating 5 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionnDWTE{4}{5}{80}
 \end{table}
+
 
 \begin{table}[htbp]
 \centering
 \pgfplotstabletypeset[
   fixed zerofill,
-  precision=5,
-  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3} },
+  precision=2,
+  create on use/newcol/.style={ create col/set list={patient 1, patient 2, patient 3, combined} },
   columns/newcol/.style={string type, column name={} },
   columns/0/.style={ column name={coef 1} },
   columns/1/.style={ column name={coef 2} },
@@ -688,12 +921,14 @@ This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
   columns/4/.style={ column name={coef 5} },
   columns={newcol,0,1,2,3,4},
   every head row/.style={before row=\toprule,after row=\midrule},
-  every last row/.style={after row=\bottomrule},
+  every last row/.style={before row=\midrule, after row=\bottomrule},
 ]{CNR_opt_5b_5coefs_T2_80ms.txt}
-\caption{Optimal contrast to noise ratio per coefficient, for a set of 5 shell, 
-estimating 5 coefficients, assuming T2=80ms, per subject.
-This assumes a total of 400 DW directions, and SNR in the $b=0$ image = 15.}
+\captionCNRTE{4}{5}{80}
 \end{table}
+
+
+
+
 
 \end{document}
 
