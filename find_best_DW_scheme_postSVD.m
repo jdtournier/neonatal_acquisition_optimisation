@@ -9,7 +9,7 @@ SNR = 15;
 N_total = 400;
 
 % TE used to acquire data:
-param.TE_used = 67; 
+param.TE_used = TE_for_bvalue(4000); 
 
 
 N_bvals = N_bvals-1;
@@ -35,7 +35,8 @@ bvals_opt = [ 0; bvals_opt ];
 response = interp1 (param.bvals_HR, param.response, bvals_opt, 'pchip');
 [ inv_response, effect_sizes ] = truncate_response (response, param.effect_sizes, param.n_coefs);
 if isfield (param, 'T2')
-  effect_sizes = effect_sizes * exp((param.TE_used-TE_for_bvalue(max(bvals_opt)))/param.T2);
+  TE = TE_for_bvalue(max(bvals_opt));
+  effect_sizes = effect_sizes * exp((param.TE_used-TE)/param.T2);
 end
 nDW = N_total * get_optimal_nDW (inv_response, effect_sizes);
 noise_var = get_noise_variance (inv_response, nDW) ./ (SNR^2);
