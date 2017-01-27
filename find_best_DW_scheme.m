@@ -9,7 +9,7 @@ N_total = 400;
 
 N_bvals = N_bvals-1;
 param.n_coefs = n_coefs;
-[ param.data, param.mask, param.bvals ] = load_data ('dc.mif', 'mask.mif', 'bvals.txt');
+[ param.data, param.mask, param.bvals ] = load_data ('dc.mif', 'mask_tissue.mif', 'bvals.txt');
 non_zero_bvals = (1:N_bvals)'*param.bvals(end)./N_bvals;
 
 bvals_opt = fminsearch (@(x) objective_function(x, param), non_zero_bvals, optimset ('Display', 'final'));

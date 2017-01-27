@@ -1,6 +1,6 @@
 clear;
 
-param = preprocess_with_SVD ('dc.mif', 'mask.mif', 'bvals.txt', 0:100:4000);
+param = preprocess_with_SVD ('dc.mif', 'mask_tissue.mif', 'bvals.txt', 0:100:4000);
 T2 = 40:5:100;
 
 bvals_3_T2 = bval_as_function_of_T2 (3, 3, param, T2);

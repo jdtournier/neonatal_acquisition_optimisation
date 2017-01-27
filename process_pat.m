@@ -1,6 +1,6 @@
 T2 = [ 60 80 100 0]; % last value ignored
 
-param = preprocess_with_SVD ('dc.mif', 'mask.mif', 'bvals.txt', 0:100:4000);
+param = preprocess_with_SVD ('dc.mif', 'mask_tissue.mif', 'bvals.txt', 0:100:4000);
 write_responses (param, 'weights.mif');
 plot_responses (param, 'response_');
 e = param.effect_sizes';

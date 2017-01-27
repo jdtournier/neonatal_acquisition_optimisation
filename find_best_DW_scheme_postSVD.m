@@ -49,7 +49,12 @@ disp ([ '  CNR = ' num2str(CNR') ]);
 
 plot (param.bvals_HR, param.response(:,1:param.n_coefs))
 grid on;
-hold on; plot (bvals_opt, response(:,1:param.n_coefs), 'o'); hold off
+yr = get(gca, 'ylim');
+h = line ([1;1]*bvals_opt', yr'*ones(1,size(bvals_opt,1)));
+set (h, 'color', [0 0 0], 'linestyle', '--')
+h = line (bvals_opt, yr(1)*ones(size(bvals_opt,1),1));
+set (h, 'color', [0 0 0], 'linestyle', 'none', 'marker', '.', 'markersize', 25)
+%hold on; plot (bvals_opt, response(:,1:param.n_coefs), 'o'); hold off
 
 filename = [ '_' num2str(numel(bvals_opt)) 'b_' num2str(n_coefs) 'coefs' ];
 if isfield (param, 'T2')
