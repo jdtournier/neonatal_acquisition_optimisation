@@ -14,7 +14,7 @@ mv dwi_b500.mif dwi_b0500.mif
 mrcat dwi_b??00.mif -axis 3 dwi.mif -force
 rm -f dwi_b*
 
-(                                                                                                                                                                                         
+(
   mkdir -p eddy
   cd eddy 
   mrconvert ../dwi.mif dwi.nii -stride 1:4 
@@ -23,7 +23,7 @@ rm -f dwi_b*
   nvol=$(mrinfo dwi.nii -size | cut -d ' ' -f 4)
   echo 0 1 0 0.05 > acqp.txt
   ( for n in $(seq 1 $nvol); do echo 1; done ) > index.txt
-  
+
   export FSLOUTPUTTYPE=NIFTI
   export FSLDIR=/opt/fsl-5.0.8
   $FSLDIR/bin/eddy --imain=dwi --mask=mask --acqp=acqp.txt --index=index.txt --bvecs=bvecs --bvals=bvals --out=eddy_dwi --verbose
@@ -32,7 +32,7 @@ rm -f dwi_b*
 
   cd ..
   rm -rf eddy
-)   
+)
 
 
 #dwi2noise dwi_corrected.mif - -shell 2000 | mrfilter - median -extent 5 noise.mif -force
