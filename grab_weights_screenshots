@@ -1,0 +1,16 @@
+#!/bin/bash
+
+for folder in pat*; do 
+  ( 
+  cd $folder
+  mrview -capture.folder . -capture.prefix weights- weights.mif -size 256,256 -noannot -fov 150 \
+    -vol 0 -autoscale -capture.grab \
+    -vol 1 -autoscale -capture.grab \
+    -vol 2 -autoscale -capture.grab \
+    -vol 3 -autoscale -capture.grab \
+    -vol 4 -autoscale -capture.grab \
+    -vol 5 -autoscale -capture.grab \
+    -exit
+  )
+done
+

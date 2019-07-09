@@ -1,0 +1,10 @@
+#!/bin/bash
+
+  mrview -capture.folder . -capture.prefix weights- weights.mif -size 256,256 -noannot -fov 120 \
+    -vol 0 -autoscale -capture.grab \
+    -vol 1 -autoscale -capture.grab \
+    -vol 2 -autoscale -capture.grab \
+    -vol 3 -autoscale -capture.grab \
+    -vol 4 -autoscale -capture.grab \
+    -vol 5 -autoscale -capture.grab 
+
