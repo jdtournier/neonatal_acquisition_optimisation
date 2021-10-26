@@ -1,4 +1,4 @@
-function write_responses (param, weights_filename, responses_filename)
+function write_responses (param, weights_filename)
 
 % write_responses (param, weights_filename)
 %

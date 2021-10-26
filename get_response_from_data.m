@@ -28,9 +28,9 @@ response = response(:,1:prod(size(actual_bvals)));
 
 % ensure consistency in presentation:
 try
-  load ('../template_response.txt')
+  load ('../template_responses.txt')
   for n = 1:size(response,2)
-    if template_response(:,n)' * response(:,n) < 0
+    if template_responses(:,n)' * response(:,n) < 0
       response(:,n) = -response(:,n);
       weights(:,n) = -weights(:,n);
     end
