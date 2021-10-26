@@ -3,8 +3,8 @@
 
 This contains the code used in this paper:
 
-> A data-driven approach to optimising the encoding for multi-shell diffusion MRI with application to neonatal imaging. 
-> Tournier JD, Christiaens D, Hutter J, Price AN, Cordero-Grande L, Hughes E, Bastiani M, Sotiropoulos SN, Smith SM,Rueckert D, Counsell SJ, Edwards AD, Hajnal JV
+> A data-driven approach to optimising the encoding for multi-shell diffusion MRI with application to neonatal imaging. <br>
+> Tournier JD, Christiaens D, Hutter J, Price AN, Cordero-Grande L, Hughes E, Bastiani M, Sotiropoulos SN, Smith SM,Rueckert D, Counsell SJ, Edwards AD, Hajnal JV<br>
 > [NMR in Biomedicine 33, e4348 (2020)](https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/full/10.1002/nbm.4348).
 
 
