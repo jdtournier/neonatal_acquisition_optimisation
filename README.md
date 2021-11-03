@@ -87,4 +87,26 @@ sensitivity to `M` coefficients, assuming a T2 of X ms.
   
 
 
+## Angular analysis
+
+To also perform the angular analysis, you need to run the original
+preprocessing first, then in a BASH terminal, invoke the `process.sh` in the
+`angular/` folder with the `angular/` folder as the current working directory:
+```
+$ cd angular/
+$ ./process.sh
+```
+Then from the MatLab prompt, ensure that same folder in the current working
+directory (if needed), and invoke the `plot_responses_as_coefs.m` and
+`plot_responses_as_profiles.m` scripts to produce the relevant figures (which
+you should find as PDF files in that same folder):
+```
+>> cd angular/
+>> plot_responses_as_coefs
+>> plot_responses_as_profiles
+```
+
+
+
+
 

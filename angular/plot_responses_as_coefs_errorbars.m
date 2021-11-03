@@ -1,5 +1,5 @@
 collate_responses;
-b=[ 0 500 1000 2000 3000 4000 ]';
+
 labels = {};
 for n=1:size(allR, 2)
   labels{n} = [ '{\it l} = ' num2str(2*(n-1)) ];
@@ -18,7 +18,7 @@ X = permute(dumpRnorm, [ 4 1 2 3 ]);
 X = abs (reshape (X, [], nl, nb));
 
 subplot (1,2,1);
-errorbar (b*ones(1,nl), squeeze(mean(X,1))', squeeze(std(X,[],1))')
+errorbar (bval'*ones(1,nl), squeeze(mean(X,1))', squeeze(std(X,[],1))')
 xlim ([ -100 4100 ]);
 grid on
 legend ( labels, 'Location', 'NorthEast')
@@ -26,12 +26,12 @@ xlabel ('b-value')
 ylabel ('SH coefficient amplitude');
 
 subplot (1,2,2);
-errorbar (b*ones(1,nl), squeeze(mean(X,1))', squeeze(std(X,[],1))')
+errorbar (bval'*ones(1,nl), squeeze(mean(X,1))', squeeze(std(X,[],1))')
 xlim ([ -100 4100 ]);
 ylim ([ 0 0.5 ]);
 grid on
 xlabel ('b-value')
 
-printpdf (gcf, 'response_coefs.pdf');
+printpdf (gcf, 'response_coefs_errorbars.pdf');
 
 
